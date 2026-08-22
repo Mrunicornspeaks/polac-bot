@@ -156,7 +156,7 @@ async def handle_answer(phone: str, user: dict, letter: str) -> None:
 
 
 async def send_payment_prompt(phone: str) -> None:
-    price = os.environ.get("ACCESS_PRICE_NAIRA", "2000")
+    price = os.environ.get("ACCESS_PRICE_NAIRA", "1000")
     await wa.send_text(
         phone,
         f"You've used your {FREE_QUESTION_LIMIT} free practice questions! 🎉\n\n"
