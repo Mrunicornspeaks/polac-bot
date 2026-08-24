@@ -151,6 +151,7 @@ async def start_session(phone: str, count: int) -> None:
         return
 
     users_svc.start_new_session(phone, subject, count)
+    user = users_svc.get_or_create_user(phone)  # ← REFRESH USER STATE AFTER SESSION START
 
     if not users_svc.has_access(user, FREE_QUESTION_LIMIT):
         await send_payment_prompt(phone)
