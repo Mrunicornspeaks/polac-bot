@@ -11,6 +11,9 @@ question.
 """
 import os
 import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -18,7 +21,10 @@ GROQ_MODEL = "llama-3.1-8b-instant"
 
 
 async def generate_explanation(question: dict, user_answer: str | None = None) -> str:
+    logger.debug(f"generate_explanation called. GROQ_API_KEY present: {bool(GROQ_API_KEY)}")
+    
     if not GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY not set - using fallback explanation")
         return _fallback_explanation(question)
 
     correct_letter = question["correct_answer"].upper()
@@ -39,6 +45,7 @@ async def generate_explanation(question: dict, user_answer: str | None = None) -
     )
 
     try:
+        logger.debug(f"Calling Groq API at {GROQ_URL}")
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
                 GROQ_URL,
@@ -52,8 +59,17 @@ async def generate_explanation(question: dict, user_answer: str | None = None) -
             )
             resp.raise_for_status()
             data = resp.json()
-            return data["choices"][0]["message"]["content"].strip()
-    except Exception:
+            explanation = data["choices"][0]["message"]["content"].strip()
+            logger.info(f"Groq API succeeded. Explanation: {explanation}")
+            return explanation
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Groq API HTTP error: {e.status_code} - {e.response.text}")
+        return _fallback_explanation(question)
+    except httpx.TimeoutException:
+        logger.error("Groq API timeout (15s exceeded)")
+        return _fallback_explanation(question)
+    except Exception as e:
+        logger.error(f"Groq API failed: {type(e).__name__}: {str(e)}", exc_info=True)
         return _fallback_explanation(question)
 
 
