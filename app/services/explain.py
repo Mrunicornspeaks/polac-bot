@@ -2,21 +2,29 @@
 Calls Groq to generate a short, conversational explanation of why the
 correct answer is correct. Falls back to a plain message if the API call
 fails, so a Groq outage never breaks the practice loop.
+
+Explanations are generated ON DEMAND (when the user taps "View
+explanation"), not automatically after every answer - this keeps the
+chat from being flooded with AI text on every question, and means a
+slow/failed Groq call never blocks the user from moving to the next
+question.
 """
 import os
 import httpx
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.1-8b-instant"  # fast + cheap, good enough for short explanations
+GROQ_MODEL = "llama-3.1-8b-instant"
 
 
-async def generate_explanation(question: dict, user_answer: str, was_correct: bool) -> str:
+async def generate_explanation(question: dict, user_answer: str | None = None) -> str:
     if not GROQ_API_KEY:
         return _fallback_explanation(question)
 
     correct_letter = question["correct_answer"].upper()
     correct_text = question[f"option_{correct_letter.lower()}"]
+
+    user_answer_line = f"Student answered: {user_answer.upper()}\n" if user_answer else ""
 
     prompt = (
         f"Subject: {question['subject']}\n"
@@ -24,7 +32,7 @@ async def generate_explanation(question: dict, user_answer: str, was_correct: bo
         f"Options: A) {question['option_a']}  B) {question['option_b']}  "
         f"C) {question['option_c']}  D) {question['option_d']}\n"
         f"Correct answer: {correct_letter}) {correct_text}\n"
-        f"Student answered: {user_answer.upper()}\n\n"
+        f"{user_answer_line}\n"
         "In 2-3 short sentences, explain why the correct answer is right, "
         "in plain, conversational language a student prepping for an exam "
         "would understand. Don't repeat the question back. No headers or lists."
