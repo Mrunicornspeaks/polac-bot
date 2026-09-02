@@ -15,7 +15,7 @@ was the original bug.
 import os
 from app.services import users as users_svc
 from app.services import questions as questions_svc
-from app.services import whatsapp as wa
+from app.services import telegram as wa  # swapped from `whatsapp as wa` for the Telegram test launch
 from app.services import explain as explain_svc
 from app.services import payment as payment_svc
 
